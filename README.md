@@ -1,5 +1,8 @@
-
-
+[![DOI]](https://doi.org/10.5281/zenodo.17835213)
+[![DOI]](https://doi.org/10.5281/zenodo.17844649)
+[![DOI]](https://doi.org/10.5281/zenodo.17844588)
+[![DOI]](https://doi.org/10.5281/zenodo.17844626)
+[![DOI]](https://doi.org/10.5281/zenodo.17844642)
 # Theoretical Background
 
 `Spectral entropy` is a useful property to measure the complexity of a spectrum. It is inspired by the concept of Shannon entropy in information theory. [(ref)](https://doi.org/10.1038/s41592-021-01331-z)
