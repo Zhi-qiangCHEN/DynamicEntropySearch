@@ -3,8 +3,35 @@ import numpy as np
 
 class DynamicWithFlash(FlashEntropySearchCoreForDynamicIndexing):
     def build_index(self, peak_data, max_indexed_mz, peak_data_nl=None):
+
         """
-        :param peak_data_nl: Only used when building neutral loss index.
+        Build the Flash-format fragment-ion and neutral-loss index.
+
+        This method constructs the index structures required for fast entropy search using the Flash Entropy Search representation. 
+        Fragment ions are indexed by their m/z values, and neutral-loss ions (if provided) are indexed by their neutral-loss mass.
+
+        Parameters
+        ----------
+        peak_data : structured array
+            A structured NumPy array containing fragment-ion information.
+
+        max_indexed_mz : float
+            Maximum m/z boundary.
+
+        peak_data_nl : structured array, optional
+            Structured NumPy array describing neutral-loss peaks:
+
+            If ``None`` (default), no neutral-loss index is constructed.
+
+        Returns
+        -------
+        tuple
+            A tuple ``(fragment_ion_index, neutral_loss_index)``, where:
+
+            - ``fragment_ion_index`` is a tuple containing ``(mz_idx_start, ion_mz, intensity, spec_idx)``
+
+            - ``neutral_loss_index`` is either a tuple containing ``(nl_idx_start, nl_mass, intensity, spec_idx, ion_mz)``, or ``None`` if no neutral-loss data is provided.
+
 
         """
         # Record the m/z, intensity, and spectrum index information for product ions.
@@ -44,6 +71,39 @@ class DynamicWithFlash(FlashEntropySearchCoreForDynamicIndexing):
         topn=None,
         min_similarity=0.1,
     ):
+        """
+        Retrieve the top-N spectra ranked by similarity score.
+
+        Given an array of similarity scores, this method returns the indices and values of the best-matching spectra, optionally subject to minimum similarity filtering.
+
+        Parameters
+        ----------
+        similarity_array : array-like
+            A 1D array of similarity scores for all spectra in a group.
+
+        topn : int or None, optional
+            The maximum number of spectra to return.  
+            If ``None`` (default), all spectra are considered.
+
+        min_similarity : float or None, optional
+            Minimum similarity threshold required for a match to be included.  
+            Scores below this value are ignored.  
+            If ``None``, all matches are accepted.  
+            Default is ``0.1``.
+
+        Returns
+        -------
+        tuple
+            A tuple ``(result_idx, result)`` where:
+
+            - ``result_idx`` is a list of spectrum indices sorted by decreasing
+            similarity.
+            - ``result`` is the corresponding list of similarity values.
+
+            Only entries satisfying ``similarity >= min_similarity`` are returned.
+
+        """
+
         if topn == None:
             topn = len(similarity_array)
 

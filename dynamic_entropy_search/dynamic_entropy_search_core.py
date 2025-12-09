@@ -14,39 +14,43 @@ class DynamicEntropySearchCore(object):
         max_indexed_mz: float = 1500.00005,
         intensity_weight="entropy",  # "entropy" or None
     ) -> None:
+        
+        
         """
-        Initialize the :class:`DynamicEntropySearch` class.
+        Initialize the :class:`DynamicEntropySearchCore` object.
 
         Parameters
         ----------
         path_data : str or Path
-            Path to the directory where index files will be stored.
+            Path to the directory where index data for this group will be stored.
 
         max_ms2_tolerance_in_da : float, optional
-            Maximum MS2 tolerance used when searching MS/MS spectra, in Dalton.
+            Maximum MS2 fragment-ion tolerance (in Daltons) allowed during entropy search. 
             Default is ``0.024``.
 
         extend_fold : int, optional
-            Expansion multiplier for ``reserved_len`` relative to ``data_len`` inside each block. Must be greater than 1.
+            Expansion factor applied when allocating space for block data.
+            Must be greater than 1. 
             Default is ``3``.
 
         mass_per_block : float, optional
-            Step size (in Da) for constructing m/z index blocks.  
-            Default is ``0.05``.
+            The m/z interval used to define ion index blocks.  
+            Default is ``0.05`` Da.
 
         max_indexed_mz : float, optional
-            Maximum m/z value included in the block index.  
-            All ions with m/z greater than this threshold will be grouped into a single block. 
+            Maximum fragment-ion m/z to index. Fragment ions with larger m/z values are placed into a single block.  
             Default is ``1500.00005``.
 
         intensity_weight : {"entropy", None}, optional
-            Intensity weighting mode:
-            
-            - ``"entropy"`` — intensity is entropy-weighted  
-            - ``None`` — no weighting (equivalent to unweighted entropy similarity)
-
+            Whether fragment intensities should be entropy-weighted.  
+            If ``"entropy"``, intensities are transformed using entropy weighting.  
+            If ``None``, raw intensity values are used.  
             Default is ``"entropy"``.
 
+
+        Returns
+        -------
+        None
         """
         self.max_ms2_tolerance_in_da = max_ms2_tolerance_in_da
         self.mass_per_block = mass_per_block
@@ -77,7 +81,7 @@ class DynamicEntropySearchCore(object):
             [
                 ("fragment_mz", np.float32),  # The m/z of corresponding ion
                 ("spec_idx", np.uint32),  # The index of the MS/MS spectra.
-                ("mass", np.float32),  # The m/z of the neutral loss.
+                ("mass", np.float32),  # The mass of the neutral loss.
                 ("intensity", np.float32),  # The intensity of the neutral loss.
             ],
             align=True,
@@ -398,8 +402,7 @@ class DynamicEntropySearchCore(object):
         return entropy_similarity
 
     def _locate_query_peaks(self, peaks: np.ndarray, ms2_tolerance_in_da: np.float32):
-        # Match the original product ion
-        # find the block location of query peaks for open search
+        # Find the block location of query peaks
 
         search_array = np.arange(0.0, self.max_indexed_mz, self.mass_per_block)
         blocks_num = len(search_array)
@@ -778,7 +781,7 @@ class DynamicEntropySearchCore(object):
         """
         Remove an existing MS/MS spectral index from disk.
 
-        This method deletes all index-related files, including block metadata, binary index blocks, and data files. It is typically used after converting an index to a compact format.
+        This method deletes all dynamic index-related files, including block metadata, binary index blocks, and data files. It is typically used after converting an index to a compact format.
 
         Parameters
         ----------
@@ -1201,6 +1204,7 @@ class DynamicEntropySearchCore(object):
             Number of top similarity scores to return. If ``None``, all entries are considered.
         min_similarity : float, optional
             Minimum similarity threshold. Scores below this value are excluded.
+            Default is ``0.1``.
 
         Returns
         -------
