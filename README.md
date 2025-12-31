@@ -315,6 +315,11 @@ query_spec={
         "peaks": np.array([[58.0646, 1894], [86.095, 98105]], dtype=np.float32),
         "precursor_mz": 183.987125828,
     }
+
+query_spec['peaks']=clean_spectrum(
+        peaks=query_spec['peaks'],
+        max_mz = query_spec['precursor_mz'] - precursor_ions_removal_da
+    )
 # Or a list:
 query_spec = [{
                 "precursor_mz": 150.0,
@@ -330,6 +335,13 @@ query_spec = [{
                 "charge": 1
                 },
                 ]
+
+# Also need to clean
+for spec in query_spec:
+    spec['peaks']=clean_spectrum(
+            peaks=spec['peaks'],
+            max_mz = spec['precursor_mz'] - precursor_ions_removal_da
+        )
 
 ```
 Then perform search, and you can get top few results.
