@@ -79,6 +79,34 @@ spectra_3_for_library ... # Similar to spectra_1_for_library
 ```
 Note that the `precursor_mz` and `peaks` keys are required, the reset of the keys are optional.
 
+The spectra in the spectra library should be cleaned using `clean_spectrum()` in `ms_entropy` before passed into the `add_new_spectrum()`.
+
+```python
+
+from ms_entropy import clean_spectrum
+
+precursor_ions_removal_da = 1.6
+
+for spec in spectra_1_for_library:
+    spec['peaks'] = clean_spectrum(
+        peaks = spec['peaks'],
+        max_mz = spec['precursor_mz'] - precursor_ions_removal_da
+    )
+
+for spec in spectra_2_for_library:
+    spec['peaks'] = clean_spectrum(
+        peaks = spec['peaks'],
+        max_mz = spec['precursor_mz'] - precursor_ions_removal_da
+    )
+
+for spec in spectra_3_for_library:
+    spec['peaks'] = clean_spectrum(
+        peaks = spec['peaks'],
+        max_mz = spec['precursor_mz'] - precursor_ions_removal_da
+    )
+
+```
+
 Then you can have your spectra libraries to be added into the library.
 
 #### Step 2: perform update
@@ -275,10 +303,10 @@ Firstly, assign the path of the prebuilt indexes as the `path_data` of `Reposito
 ```python
 from dynamic_entropy_search.repository_search import RepositorySearch
 
-search_engine = RepositorySearch(path_data=path_repository_indexes)
+search_engine=RepositorySearch(path_data=path_repository_indexes)
 ```
 
-Prepare query spectrum in correct format like this:
+Prepare query spectrum in correct format (see aforementioned points to prepare the format).
 
 ```python
 import numpy as np
@@ -289,17 +317,17 @@ query_spec={
     }
 # Or a list:
 query_spec = [{
-                "charge":-1,
                 "precursor_mz": 150.0,
-                "peaks": np.array([[100.0, 1.0], [101.0, 1.0], [102.0, 1.0]], dtype=np.float32)
+                "peaks": np.array([[100.0, 1.0], [101.0, 1.0], [102.0, 1.0]], dtype=np.float32),
+                "charge": 1
                 },{
-                "charge":1,
                 "precursor_mz": 250.0,
-                "peaks": np.array([[108.0, 1.0], [113.0, 1.0], [157.0, 1.0]], dtype=np.float32)
+                "peaks": np.array([[108.0, 1.0], [113.0, 1.0], [157.0, 1.0]], dtype=np.float32),
+                "charge": -1
                 },{
-                "charge":-1,
                 "precursor_mz": 299.0,
-                "peaks": np.array([[119.0, 1.0], [145.0, 1.0], [157.0, 1.0]], dtype=np.float32)
+                "peaks": np.array([[119.0, 1.0], [145.0, 1.0], [157.0, 1.0]], dtype=np.float32),
+                "charge": 1
                 },
                 ]
 
@@ -307,90 +335,46 @@ query_spec = [{
 Then perform search, and you can get top few results.
 
 ```python
-def search_spectrum(
-    search_engine: RepositorySearch,
-    charge,
-    precursor_mz,
-    peaks,
-    method="open",
-    ms1_tolerance_in_da=0.01,
-    ms2_tolerance_in_da=0.02,
-):
-    search_result = search_engine.search_topn_matches(
-        charge=charge,
-        precursor_mz=precursor_mz,
-        peaks=peaks,
-        method=method,
-        ms1_tolerance_in_da=ms1_tolerance_in_da,
-        ms2_tolerance_in_da=ms2_tolerance_in_da,
-        output_full_spectrum=False,
-    )
-    return search_result
+# Perform search
+search_result = search_engine.search_topn_matches(
+    charge=query_spec["charge"],
+    precursor_mz=query_spec["precursor_mz"],
+    peaks=query_spec["peaks"],
+    method="open", # or 'hybrid' or 'neutral_loss' or 'identity'
+)
 
+# If the query spectra is a list:
+for spec in query_spec:
+    search_result = search_engine.search_topn_matches(
+        charge=spec["charge"],
+        precursor_mz=spec["precursor_mz"],
+        peaks=spec["peaks"],
+        method="open", # or 'hybrid' or 'neutral_loss' or 'identity'
+    )
+```
+
+If you want to extract any spectrum from the results:
+
+```python
 def get_spectrum_data(search_engine: RepositorySearch, charge, spec_idx):
     # You can specify the spectrum you want to extract from results by setting spec_idx
     spec = search_engine.get_spectrum(charge, spec_idx)
     spec.pop("scan", None)
     return spec
-
-
-# Perform search
-# If it is a single query spectrum:
-search_result = search_spectrum(
-    search_engine=search_engine,
-    charge=query_spec["charge"],
-    precursor_mz=query_spec["precursor_mz"],
-    peaks=query_spec["peaks"],
-    method="hybrid", # or 'open' or 'neutral_loss' or 'identity'
-)
-
-# Then extract the results:
 # For example, set `spec_idx` to 0.
-spec_data = get_spectrum_data(
-    search_engine=search_engine, 
-    charge=query_spec["charge"], 
-    spec_idx=search_result[0].pop("spec_idx"))
-
+spec_data = get_spectrum_data(search_engine, query_spec["charge"], search_result[0].pop("spec_idx"))
 spec_data.update(search_result[0])
 print(f"Top match spectrum data: {spec_data}")
 
 # For example, set `spec_idx` to 1.
-spec_data = get_spectrum_data(
-    search_engine=search_engine, 
-    charge=query_spec["charge"], 
-    spec_idx=search_result[1].pop("spec_idx"))
-
+spec_data = get_spectrum_data(search_engine, query_spec["charge"], search_result[1].pop("spec_idx"))
 spec_data.update(search_result[1])
 print(f"Match spectrum data: {spec_data}")
 
-###############################################################
-# If the query spectra is a list, iterate it to perform search:
-for spec in query_spec:
-    search_result=search_spectrum(
-        search_engine=search_engine,
-        charge=spec["charge"],
-        precursor_mz=spec["precursor_mz"],
-        peaks=spec["peaks"],
-        method="hybrid", # or 'open' or 'neutral_loss' or 'identity'
-    )
+```
+Here is an example of the result:
 
-    # Then extract the results.
-    # For example, set `spec_idx` to 0.
-    spec_data = get_spectrum_data(
-        search_engine=search_engine, 
-        charge=spec["charge"], 
-        spec_idx=search_result[0].pop("spec_idx"))
-
-    spec_data.update(search_result[0])
-    print(f"Top match spectrum data: {spec_data}")
-
-    # For example, set `spec_idx` to 1.
-    spec_data = get_spectrum_data(
-        search_engine=search_engine, 
-        charge=spec["charge"], 
-        spec_idx=search_result[1].pop("spec_idx"))
-
-    spec_data.update(search_result[1])
-    print(f"Match spectrum data: {spec_data}")
-
+```python
+Top match spectrum data: {'precursor_mz': 512.233642578125, 'charge': -1, 'rt': 76.76499938964844, 'peaks': array([[200.00693   ,   0.74098176],
+       [202.0056    ,   0.2590183 ]], dtype=float32), 'file_name': 'metabolomics_workbench/ST003745/x01997_NEG.mzML.gz', 'scan': np.uint64(1139), 'similarity': np.float64(0.8030592799186707)}
 ```
