@@ -90,22 +90,30 @@ precursor_ions_removal_da = 1.6
 for spec in spectra_1_for_library:
     spec['peaks'] = clean_spectrum(
         peaks = spec['peaks'],
-        max_mz = spec['precursor_mz'] - precursor_ions_removal_da
+        max_mz = spec['precursor_mz'] - precursor_ions_removal_da, # Max m/z in peaks.
+        min_mz: float = -1.0, # Min m/z in peaks.
+        noise_threshold: float = 0.01, # The minimum intensity to keep. Defaults to 0.01, which will remove peaks with intensity < 0.01 * max_intensity.
+        min_ms2_difference_in_da: float = 0.05, # The minimum m/z difference between two peaks in the resulting spectrum.
+        min_ms2_difference_in_ppm: float = -1.0, # The minimum m/z difference between two peaks in the resulting spectrum. Defaults to -1, which will use the min_ms2_difference_in_da instead.
+        max_peak_num: int = -1, # The maximum number of peaks to keep.
+        normalize_intensity: bool = True, # Whether to normalize the intensity to sum to 1.
+
     )
 
 for spec in spectra_2_for_library:
     spec['peaks'] = clean_spectrum(
         peaks = spec['peaks'],
         max_mz = spec['precursor_mz'] - precursor_ions_removal_da
-    )
+    )   # Other parameters can be set as aforementioned.
 
 for spec in spectra_3_for_library:
     spec['peaks'] = clean_spectrum(
         peaks = spec['peaks'],
         max_mz = spec['precursor_mz'] - precursor_ions_removal_da
-    )
+    ) # Other parameters can be set as aforementioned.
 
 ```
+Note that three parameters (1) `min_ms2_difference_in_da` in `clean_spectrum()`, (2) `max_ms2_tolerance_in_da` in the initialization of class `DynamicEntropySearch()` and (3) `ms2_tolerance_in_da` in any search functions of `DynamicEntropySearch()` should follow this rule: `min_ms2_difference_in_da` > `max_ms2_tolerance_in_da` * 2 > `ms2_tolerance_in_da` * 2. An error will be reported if the condition is not met.
 
 Then you can have your spectra libraries to be added into the library.
 
@@ -115,7 +123,16 @@ Then you can have your spectra libraries to be added into the library.
 from dynamic_entropy_search.dynamic_entropy_search import DynamicEntropySearch
 
 # Secondly, assign the path for your library.
-entropy_search=DynamicEntropySearch(path_data=path_of_your_library)
+entropy_search=DynamicEntropySearch(
+        path_data=path_of_your_library, 
+        max_ms2_tolerance_in_da=0.024, # Maximum MS/MS tolerance (in Daltons) used during spectrum search.
+        extend_fold=3, # Expansion factor for preallocated storage in each m/z block. Determines ``reserved_len = data_len * extend_fold``. 
+        mass_per_block: float = 0.05, # m/z step size for creating the index blocks.
+        num_per_group: int = 100_000_000, # Number of spectra assigned to each group. 
+        cache_list_threshold: int = 1_000_000, # Number of spectra to accumulate in memory before writing them to disk.
+        max_indexed_mz: float = 1500.00005, # Maximum m/z value to index. Ions above this threshold are grouped into a single block. 
+        intensity_weight="entropy",  # "entropy" or None.Determines whether intensities are entropy-weighted. 
+)
 
 # Thirdly, add spectra into the library one by one.
 entropy_search.add_new_spectra(spectra_list=spectra_1_for_library)
