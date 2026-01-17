@@ -1,4 +1,5 @@
 import numpy as np
+import shutil
 import pandas as pd
 from ms_entropy import read_one_spectrum, standardize_spectrum, clean_spectrum
 from dynamic_entropy_search.dynamic_entropy_search import DynamicEntropySearch
@@ -26,7 +27,7 @@ def get_spectra_list(spectra_database):
             peaks=spec['peaks'], 
             noise_threshold=0.01,
             max_mz=spec['precursor_mz'] - 1.6, 
-            min_ms2_difference_in_da=0.221,
+            min_ms2_difference_in_da=0.321,
             normalize_intensity=True)
         
         peaks = spec['peaks']
@@ -56,7 +57,7 @@ def get_spectra_list(spectra_database):
 
 def build_spectra_library(spec_list, library_path):
     entropy_search = DynamicEntropySearch(path_data=library_path,
-                                          max_ms2_tolerance_in_da=0.11,
+                                          max_ms2_tolerance_in_da=0.16,
                                           )
     entropy_search.add_new_spectra(spectra_list=spec_list)
     entropy_search.build_index()
@@ -71,8 +72,8 @@ def library_search(search_data, library_path):
         result=entropy_search.search_topn_matches(
                 precursor_mz=spec['precursor_mz'],
                 peaks=spec['peaks'],
-                ms1_tolerance_in_da=0.10, # You can change ms1_tolerance_in_da as needed.
-                ms2_tolerance_in_da=0.11, # You can change ms2_tolerance_in_da as needed.
+                ms1_tolerance_in_da=0.14, # You can change ms1_tolerance_in_da as needed.
+                ms2_tolerance_in_da=0.16, # You can change ms2_tolerance_in_da as needed.
                 method='identity', # or 'neutral_loss' or 'hybrid' or 'identity'.
                 clean=False, # If you don't want to use the internal clean process in this function, set it to False.
                 topn=1, # You can change topn as needed.
@@ -98,13 +99,15 @@ def library_search(search_data, library_path):
 if __name__ == "__main__":
 
     spectra_database = '/y/zchen/Documents/spectral_database/all_clean_noMonaExp_neg.msp'
-    library_path ='/y/zchen/DynamicEntropySearch_library/all_clean_noMonaExp_neg_ms2_011'
+    library_path ='/y/zchen/DynamicEntropySearch_library/all_clean_noMonaExp_neg_ms2_016'
     search_data = '/y/zchen/Documents/ZJUH1/plasma_neg_mzML/masscube/project_files/features.msp'
     spec_list = get_spectra_list(spectra_database)
-    # build_spectra_library(spec_list, library_path)
+    
+    shutil.rmtree(library_path, ignore_errors=True)
+    build_spectra_library(spec_list, library_path)
     match_list = library_search(search_data, library_path)
     
     output_df = pd.DataFrame(match_list)
-    output_df.to_excel('/y/zchen/Documents/ZJUH1/plasma_neg_mzML/masscube/project_files/identity_010_011_top1.xlsx', index=False, engine='openpyxl')
+    output_df.to_excel('/y/zchen/Documents/ZJUH1/plasma_neg_mzML/masscube/project_files/identity_014_016_top1.xlsx', index=False, engine='openpyxl')
 
     
